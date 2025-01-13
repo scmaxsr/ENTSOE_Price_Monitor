@@ -1,4 +1,4 @@
-# Tibber_Price_Monitor
+# Tibber_Price_Monitor for ZigZag LED matrix
 
 Small project to show dynamic hourly energy prices from Tibber on a simple LED matrix.
 First column is the current hour, the other colums show the next 7 hours.
