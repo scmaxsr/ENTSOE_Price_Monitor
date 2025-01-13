@@ -1,4 +1,4 @@
-# Tibber_Price_Monitor for ZigZag LED matrix
+# Tibber_Price_Monitor
 
 Small project to show dynamic hourly energy prices from Tibber on a simple LED matrix.
 First column is the current hour, the other colums show the next 7 hours.
@@ -10,10 +10,13 @@ Colours are the price levels estimated by the Tibber API.
 - Modify your Tibber API key, WiFi settings in the settings.h file
 - And compile/upload the project with the Arduino IDE
 
-##Hardware required:
-- ESP8266 or similar board with WiFi (WEMOS D1 in my case)
-- Neopixel / WS2812 compatible LED matrix (8x8)
-- Picture frame / box
+##Hardware used:
+
+AZDelivery 8x8 LED Matrix
+https://www.amazon.nl/dp/B078HYP681?ref=ppx_yo2ov_dt_b_fed_asin_title&th=1
+
+AZDelivery D1-Mini
+https://www.amazon.nl/-/en/dp/B01N9RXGHY/ref=twister_B07Z95B4BJ?_encoding=UTF8&th=1
 
 Hardware cost: Electronics around 10 Euro
 
