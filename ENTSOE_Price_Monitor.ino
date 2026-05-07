@@ -1,5 +1,5 @@
 /*
- * ENTSO-E Prijs Monitor
+ * ENTSO-E Price Monitor
  * 
  * ESP8266 (Wemos D1 Mini) with 8x8 LED Matrix
  * Displays day-ahead electricity prices from the ENTSO-E Transparency Platform.
@@ -35,7 +35,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println();
   Serial.println("========================================");
-  Serial.println("  ENTSO-E Prijs Monitor v1.0");
+  Serial.println("  ENTSO-E Price Monitor v1.0");
   Serial.println("========================================");
   
   // Initialize the LED matrix
@@ -46,7 +46,7 @@ void setup() {
   
   // Initialize WiFi (starts config portal if no saved config)
   if (!initWiFi()) {
-    Serial.println("FATAL: WiFi initialisatie mislukt. Opnieuw opstarten...");
+    Serial.println("FATAL: WiFi init failed. Rebooting...");
     delay(3000);
     ESP.restart();
   }
@@ -55,7 +55,7 @@ void setup() {
   initTime(timeZoneNL);
   
   // Show connecting animation while we fetch initial data
-  Serial.println("Eerste data ophalen van ENTSO-E...");
+  Serial.println("Fetching initial data from ENTSO-E...");
   
   // Force initial data fetch
   getEntsoePrices();
@@ -71,7 +71,7 @@ void setup() {
   hourLastCheck = getHoursOfDay();
   timeLastCheck = 0; // Reset timer so loop runs immediately
   
-  Serial.println("Setup voltooid - monitor draait!");
+  Serial.println("Setup complete - monitor is running!");
 }
 
 void loop() {
@@ -86,7 +86,7 @@ void loop() {
     // Check if we need new data (new hour started, or wrapped past midnight)
     if (hourNow > hourLastCheck || (hourNow == 0 && hourLastCheck == 23)) {
       
-      Serial.printf("\n--- Nieuw uur: %d ---\n", hourNow);
+      Serial.printf("\n--- New hour: %d ---\n", hourNow);
       
       // Only fetch if WiFi is available
       if (WiFi.status() == WL_CONNECTED || connectWithStoredConfig()) {
@@ -107,7 +107,7 @@ void loop() {
         disconnectWiFi();
         
       } else {
-        Serial.println("WiFi niet beschikbaar - opnieuw verbinden...");
+        Serial.println("WiFi not available - reconnecting...");
         if (initWiFi()) {
           // Retry data fetch
           getEntsoePrices();

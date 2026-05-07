@@ -1,4 +1,4 @@
-// For debugging - The Tibber API provides JSON data that requieres memory efficient handling
+// Debugging helper - shows free heap memory
 void display_freeram() {
     Serial.print("- SRAM left: ");
     Serial.println(ESP.getFreeHeap());

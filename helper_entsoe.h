@@ -55,12 +55,12 @@ String extractBetween(const String& data, const String& startMarker, const Strin
 
 // Print prices over Serial
 void printPrices() {
-  Serial.println("--- ENTSO-E Prijzen ---");
+  Serial.println("--- ENTSO-E Prices ---");
   for (int i = 0; i < 8; i++) {
     if (!PRICES.price[i].isNull) {
       Serial.printf("  %s: %i (%i)\n", PRICES.price[i].starttime, PRICES.price[i].price, PRICES.price[i].level);
     } else {
-      Serial.printf("  Uur %d: Geen data\n", i);
+      Serial.printf("  Hour %d: No data\n", i);
     }
   }
   Serial.printf("Min: %i  Max: %i\n", PRICES.minimumPrice, PRICES.maximumPrice);
@@ -231,7 +231,7 @@ String getDateString(int daysFromNow) {
 
 // Fetch prices from ENTSO-E API
 void getEntsoePrices() {
-  Serial.println("\n--- ENTSO-E Prijzen Ophalen ---");
+  Serial.println("\n--- Fetching ENTSO-E Prices ---");
   
   std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
   client->setInsecure(); // Accept any certificate
@@ -288,7 +288,7 @@ void getEntsoePrices() {
     Serial.println("[HTTPS] Unable to connect to ENTSO-E API");
   }
   
-  Serial.println("--- ENTSO-E Ophalen Voltooid ---\n");
+  Serial.println("--- ENTSO-E Fetch Complete ---\n");
 }
 
 #endif // HELPER_ENTSOE_H

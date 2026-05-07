@@ -8,11 +8,11 @@
  * Each column represents one hour. Height = relative price, Color = price level.
  * 
  * Color mapping:
- *   Level 1 (Zeer Goedkoop): Groen
- *   Level 2 (Goedkoop):      Licht Groen
- *   Level 3 (Normaal):        Oranje/Geel
- *   Level 4 (Duur):           Oranje
- *   Level 5 (Zeer Duur):      Rood
+ *   Level 1 (Very Cheap):  Green
+ *   Level 2 (Cheap):        Yellow-Green
+ *   Level 3 (Normal):        Amber/Yellow
+ *   Level 4 (Expensive):    Orange
+ *   Level 5 (Very Expensive): Red
  */
 
 #include <Adafruit_GFX.h>
@@ -32,17 +32,17 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(8, 8, D3,
   NEO_GRB            + NEO_KHZ800);
 
 // Colors for price levels (1-5)
-// Level 1: Bright Green     - Zeer goedkoop
-// Level 2: Yellow-Green     - Goedkoop
-// Level 3: Yellow/Amber     - Normaal
-// Level 4: Orange           - Duur
-// Level 5: Red              - Zeer duur
+// Level 1: Bright Green     - Very cheap
+// Level 2: Yellow-Green     - Cheap
+// Level 3: Yellow/Amber     - Normal
+// Level 4: Orange           - Expensive
+// Level 5: Red              - Very expensive
 const uint16_t colors[] = {
-  matrix.Color(0, 255, 0),    // Level 1: Groen
-  matrix.Color(85, 255, 0),   // Level 2: Licht Groen
-  matrix.Color(255, 180, 0),  // Level 3: Oranje/Geel
-  matrix.Color(255, 80, 0),   // Level 4: Oranje
-  matrix.Color(255, 0, 0)     // Level 5: Rood
+  matrix.Color(0, 255, 0),    // Level 1: Green
+  matrix.Color(85, 255, 0),   // Level 2: Yellow-Green
+  matrix.Color(255, 180, 0),  // Level 3: Amber/Yellow
+  matrix.Color(255, 80, 0),   // Level 4: Orange
+  matrix.Color(255, 0, 0)     // Level 5: Red
 };
 
 // Blinking state for current hour indicator
@@ -129,7 +129,7 @@ void matrixShowEntsoe() {
       // Draw the column
       matrixLine(i, height, colors[level]);
       
-      Serial.printf("  Kolom %d: prijs=%d, hoogte=%d, niveau=%d\n", 
+      Serial.printf("  Col %d: price=%d, height=%d, level=%d\n", 
                     i, PRICES.price[i].price, height, level);
     } else {
       // No data for this hour - draw a dim dot at bottom
