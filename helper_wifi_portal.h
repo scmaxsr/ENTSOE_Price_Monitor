@@ -18,6 +18,7 @@
 #include <DNSServer.h>
 #include <FS.h>
 #include "settings.h"
+#include "helper_led.h"
 
 // DNS server for captive portal
 const byte DNS_PORT = 53;
@@ -161,11 +162,11 @@ void clearConfig() {
 // HTML page for the configuration portal
 const char configHTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ENTSO-E Prijs Monitor Configuratie</title>
+  <title>ENTSO-E Price Monitor Configuration</title>
   <link rel="icon" href="data:,">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -190,32 +191,32 @@ const char configHTML[] PROGMEM = R"rawliteral(
 </head>
 <body>
   <div class="container">
-    <h1>⚡ ENTSO-E Prijs Monitor</h1>
-    <p>Configureer WiFi en ENTSO-E API om prijzen op te halen</p>
+    <h1>⚡ ENTSO-E Price Monitor</h1>
+    <p>Configure WiFi and ENTSO-E API to fetch electricity prices</p>
     
     <form id="configForm">
       <label>WiFi SSID</label>
-      <input type="text" id="ssid" placeholder="b.v. Ziggo-1234" required>
+      <input type="text" id="ssid" placeholder="e.g. Ziggo-1234" required>
       
-      <label>WiFi Wachtwoord</label>
-      <input type="password" id="password" placeholder="WiFi wachtwoord">
+      <label>WiFi Password</label>
+      <input type="password" id="password" placeholder="WiFi password">
       
       <label>ENTSO-E API Key</label>
-      <input type="text" id="apiKey" placeholder="b.v. 1d9f2b3c-..." required>
-      <div class="info">Verkrijgbaar via transparency.entsoe.eu → My Account</div>
+      <input type="text" id="apiKey" placeholder="e.g. 1d9f2b3c-..." required>
+      <div class="info">Get it at transparency.entsoe.eu → My Account</div>
       
       <label>Bidding Zone</label>
       <input type="text" id="biddingZone" placeholder="10YNL----------L" value="10YNL----------L">
-      <div class="info">Standaard Nederland (10YNL----------L)</div>
+      <div class="info">Default: Netherlands (10YNL----------L)</div>
       
-      <button type="submit" class="btn" id="saveBtn">Opslaan &amp; Verbinden</button>
+      <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
     </form>
     
-    <div class="hint">⚠️ Na opslaan start de monitor opnieuw. Houd de stroom aangesloten.</div>
+    <div class="hint">⚠️ After saving, the monitor will restart. Keep the power connected.</div>
     
     <div class="status" id="status"></div>
     
-    <div class="footer">ENTSO-E Prijs Monitor v1.0</div>
+    <div class="footer">ENTSO-E Price Monitor v1.0</div>
   </div>
   
   <script>
@@ -226,7 +227,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       btn.disabled = true;
-      btn.textContent = 'Bezig met opslaan...';
+      btn.textContent = 'Saving...';
       status.className = 'status';
       status.textContent = '';
       
@@ -241,18 +242,18 @@ const char configHTML[] PROGMEM = R"rawliteral(
         const text = await res.text();
         if (res.ok) {
           status.className = 'status success';
-          status.textContent = '✅ ' + text;
+          status.textContent = 'OK: ' + text;
           // Redirect will happen automatically
           setTimeout(() => { window.location.href = '/'; }, 3000);
         } else {
           status.className = 'status error';
-          status.textContent = '❌ ' + text;
+          status.textContent = 'Error: ' + text;
           btn.disabled = false;
-          btn.textContent = 'Opslaan & Verbinden';
+          btn.textContent = 'Save & Connect';
         }
       } catch(err) {
         status.className = 'status error';
-        status.textContent = '❌ Fout bij verzenden: ' + err.message;
+        status.textContent = 'Error sending: ' + err.message;
         btn.disabled = false;
         btn.textContent = 'Opslaan & Verbinden';
       }
@@ -270,7 +271,7 @@ void handleRoot() {
 // Handle save POST request
 void handleSave() {
   if (!server.hasArg("ssid") || !server.hasArg("apiKey")) {
-    server.send(400, "text/plain", "SSID en API Key zijn verplicht");
+    server.send(400, "text/plain", "SSID and API Key are required");
     return;
   }
 
@@ -280,7 +281,7 @@ void handleSave() {
   String biddingZone = server.arg("biddingZone");
 
   if (ssid.length() == 0 || apiKey.length() == 0) {
-    server.send(400, "text/plain", "SSID en API Key mogen niet leeg zijn");
+    server.send(400, "text/plain", "SSID and API Key cannot be empty");
     return;
   }
 
@@ -295,12 +296,12 @@ void handleSave() {
   config.configured = true;
 
   if (saveConfig()) {
-    server.send(200, "text/plain", "Configuratie opgeslagen! Apparaat start opnieuw...");
+    server.send(200, "text/plain", "Configuration saved! Device is rebooting...");
     Serial.println("Config saved via portal. Rebooting...");
     delay(1000);
     ESP.restart();
   } else {
-    server.send(500, "text/plain", "Fout bij opslaan configuratie");
+    server.send(500, "text/plain", "Error saving configuration");
   }
 }
 
@@ -313,8 +314,8 @@ void handleNotFound() {
 // Start the configuration portal in AP mode
 void startConfigPortal() {
   Serial.println("\n========================================");
-  Serial.println("  GEEN CONFIGURATIE GEVONDEN");
-  Serial.println("  Starten in AP-modus...");
+  Serial.println("  NO CONFIGURATION FOUND");
+  Serial.println("  Starting in AP mode...");
   Serial.println("========================================\n");
 
   // Start in AP mode
@@ -322,7 +323,7 @@ void startConfigPortal() {
   WiFi.softAP("ENTSOE-Monitor-Config");
   
   IPAddress apIP = WiFi.softAPIP();
-  Serial.print("AP IP adres: ");
+  Serial.print("AP IP address: ");
   Serial.println(apIP);
 
   // Start DNS server (captive portal)
@@ -335,7 +336,7 @@ void startConfigPortal() {
   server.onNotFound(handleNotFound);
 
   server.begin();
-  Serial.println("Webserver gestart op http://" + apIP.toString());
+  Serial.println("Web server started at http://" + apIP.toString());
 
   // Wait for configuration (with timeout)
   unsigned long portalStart = millis();
@@ -344,12 +345,14 @@ void startConfigPortal() {
   while (!config.configured && (millis() - portalStart) < PORTAL_TIMEOUT) {
     dnsServer.processNextRequest();
     server.handleClient();
+    // Show AP mode animation on LED matrix
+    matrixShowAPMode();
     // Small delay to prevent watchdog issues
     delay(10);
   }
 
   if (!config.configured) {
-    Serial.println("Portal timeout - geen configuratie ontvangen. Opnieuw opstarten...");
+    Serial.println("Portal timeout - no configuration received. Rebooting...");
     delay(1000);
     ESP.restart();
   }
@@ -361,7 +364,7 @@ bool connectWithStoredConfig() {
     return false;
   }
 
-  Serial.print("Verbinden met WiFi: ");
+  Serial.print("Connecting to WiFi: ");
   Serial.println(config.ssid);
   
   WiFi.mode(WIFI_STA);
@@ -375,29 +378,29 @@ bool connectWithStoredConfig() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\nWiFi verbonden!");
-    Serial.print("IP adres: ");
+    Serial.println("\nWiFi connected!");
+    Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
     return true;
   } else {
-    Serial.println("\nWiFi verbinding mislukt");
+    Serial.println("\nWiFi connection failed");
     return false;
   }
 }
 
 // Main initialization - call from setup()
 bool initWiFi() {
-  Serial.println("\n--- WiFi Initialisatie ---");
+  Serial.println("\n--- WiFi Initialization ---");
   
   // Try to load saved config
   config.configured = false;
   
   if (loadConfig()) {
-    Serial.println("Opgeslagen config gevonden, verbinden met WiFi...");
+    Serial.println("Saved config found, connecting to WiFi...");
     if (connectWithStoredConfig()) {
       return true;
     } else {
-      Serial.println("Kon niet verbinden met opgeslagen WiFi. Portal starten...");
+      Serial.println("Could not connect with saved WiFi. Starting portal...");
       // Clear config so portal can overwrite
       clearConfig();
     }
@@ -413,7 +416,7 @@ bool initWiFi() {
 // Disconnect WiFi to save power
 void disconnectWiFi() {
   WiFi.mode(WIFI_OFF);
-  Serial.println("WiFi uitgeschakeld (energiebesparing)");
+  Serial.println("WiFi disabled (power saving)");
 }
 
 // Getter functions for config values

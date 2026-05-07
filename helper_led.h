@@ -180,6 +180,53 @@ void matrixShowConnecting() {
   delay(100);
 }
 
+// Show AP mode indicator - alternating blue 'A' pattern on LED matrix
+// Visual: two vertical blue bars that alternate left/right to indicate config mode
+void matrixShowAPMode() {
+  static unsigned long lastToggle = 0;
+  static bool apState = false;
+  
+  unsigned long now = millis();
+  
+  if (now - lastToggle > 500) { // Toggle every 500ms
+    lastToggle = now;
+    apState = !apState;
+    matrix.fillScreen(0);
+    
+    if (apState) {
+      // Pattern 1: Left column + right column blue (brackets)
+      for (int y = 0; y < 8; y++) {
+        drawPixelRemapped(0, y, matrix.Color(0, 0, 80));  // Dim blue left
+        drawPixelRemapped(7, y, matrix.Color(0, 0, 80));  // Dim blue right
+      }
+      // Center 4x4 block
+      for (int x = 2; x <= 5; x++) {
+        for (int y = 2; y <= 5; y++) {
+          drawPixelRemapped(x, y, matrix.Color(0, 0, 120));  // Medium blue center
+        }
+      }
+    } else {
+      // Pattern 2: Show "AP" hint - top and bottom rows blue
+      for (int x = 0; x < 8; x++) {
+        drawPixelRemapped(x, 0, matrix.Color(0, 0, 60));   // Dim blue top
+        drawPixelRemapped(x, 7, matrix.Color(0, 0, 60));   // Dim blue bottom
+      }
+    }
+    
+    matrix.show();
+  }
+}
+
+// Non-blocking version - call this in loop() without delay
+// Set to true when AP mode is active
+bool apModeActive = false;
+
+void matrixUpdateAPMode() {
+  if (apModeActive) {
+    matrixShowAPMode();
+  }
+}
+
 // Show an error pattern (all red flash)
 void matrixShowError() {
   matrix.fillScreen(0);

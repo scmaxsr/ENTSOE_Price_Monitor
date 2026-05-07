@@ -46,9 +46,25 @@ void setup() {
   
   // Initialize WiFi (starts config portal if no saved config)
   if (!initWiFi()) {
-    Serial.println("FATAL: WiFi init failed. Rebooting...");
-    delay(3000);
-    ESP.restart();
+    // WiFi init failed or user hasn't configured yet
+    // The portal is now running - show AP mode on LED matrix
+    Serial.println("Starting AP mode - showing config portal on LED matrix");
+    apModeActive = true;
+    
+    // Stay in AP mode loop until user configures WiFi
+    while (apModeActive) {
+      matrixShowAPMode();
+      handlePortal();  // Process web server requests
+      
+      // Check if config has been saved (WiFi connected)
+      if (WiFi.status() == WL_CONNECTED || connectWithStoredConfig()) {
+        apModeActive = false;
+        Serial.println("WiFi configured! Exiting AP mode.");
+      }
+    }
+    
+    // Show test pattern again to confirm exit from AP mode
+    matrixShowTest();
   }
   
   // Get time from NTP and set timezone (NL)
