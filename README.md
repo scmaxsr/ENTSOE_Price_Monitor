@@ -16,7 +16,7 @@ Every hour, the device fetches day-ahead electricity prices for the next 8 hours
   - 🟠 Orange: expensive (level 4)
   - 🔴 Red: very expensive (level 5)
 
-On first boot, the device creates a WiFi access point with a configuration portal. After setup, it runs standalone and only connects to WiFi once per hour to fetch new prices, saving power.
+On first boot, the device creates a WiFi access point with a configuration portal (LED matrix shows blue blinking pattern ⚡). After setup, it runs standalone and only connects to WiFi once per hour to fetch new prices, saving power. If the device cannot find a saved configuration, it automatically enters AP mode and the LED matrix displays a blue animation to indicate it's ready for setup.
 
 ## Hardware
 
@@ -74,6 +74,17 @@ After flashing, the device starts in configuration mode:
 4. Click Save — the device reboots and starts displaying prices
 
 > On subsequent boots, saved settings are loaded from internal flash memory. To reconfigure, hold GPIO0 low during boot (or manually erase SPIFFS).
+
+## LED Matrix Visual Guide
+
+| State | LED Matrix | Description |
+|:------|:-----------|:------------|
+| ⚪ Boot | White test pattern | All LEDs light up briefly at startup |
+| ⚙️ Config Mode | **Blue blinking** 🔵 | Access point `ENTSOE-Monitor-Config` is active |
+| 🌐 Connecting | Sweeping animation | Device is connecting to your WiFi network |
+| 📊 Normal | Colored bar chart (8 columns) | Current hour (blinking) + next 7 hours |
+| 🔴 Red column | Red bar | Very expensive (level 5) |
+| 🟢 Green column | Green bar | Very cheap (level 1) |
 
 ## Bidding Zones
 
