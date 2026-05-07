@@ -1,19 +1,28 @@
-// WiFi Settings
-const char* ssid = "SSID";
-const char* password = "Password";
+// Default settings - these are used when no saved config exists yet
+// The WiFi config portal will allow changing these at first boot
 
-// Tibber API key - Insert your personal key here - this is the demo token
-const String apiKey = "5K4MVS-OjfWhK_4yrjOlFe1F6kJXPVf7eQYggo8ebAE";
+// Default WiFi (will be overwritten by saved config)
+const char* default_ssid = "YourWiFiSSID";
+const char* default_password = "YourWiFiPassword";
 
+// ENTSO-E API Settings (will be overwritten by saved config)
+const char* default_apiKey = "YOUR_ENTSOE_API_KEY";
+const char* default_biddingZone = "10YNL----------L";
 
-// Usually no need to adjust the following variables:
+// ENTSO-E API endpoint
+const char* entsoeApi = "https://web-api.tp.entsoe.eu/api";
+const uint16_t port = 443;
+
+// NTP Settings
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3600;
 const int   daylightOffset_sec = 3600;
 
-const String timeZoneBerlin ="CET-1CEST,M3.5.0,M10.5.0/3";
+// Timezone for the Netherlands (CET/CEST)
+const String timeZoneNL = "CET-1CEST,M3.5.0,M10.5.0/3";
 
-const char* tibberApi = "https://api.tibber.com/v1-beta/gql";
-const uint16_t port = 443;
+// LED Matrix Settings
+const int ledBrightness = 20;
 
-
+// Config file in SPIFFS
+const char* configFile = "/config.txt";
