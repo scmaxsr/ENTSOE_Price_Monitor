@@ -35,8 +35,8 @@ struct entsoe_prices {
   int maximumPrice = 0;        // max price in 0.1 eurocent
 };
 
-// Global prices structure
-entsoe_prices PRICES;
+// Global prices structure (declared extern, defined in the .ino file)
+extern entsoe_prices PRICES;
 
 // ENTSO-E API base URL is defined in settings.h
 extern const char* entsoeApi;

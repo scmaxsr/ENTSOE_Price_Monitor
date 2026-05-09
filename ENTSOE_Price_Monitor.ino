@@ -24,6 +24,9 @@
 #include "helper_entsoe.h"
 #include "helper_led.h"
 
+// Global prices structure (defined here, used via extern in helpers)
+entsoe_prices PRICES;
+
 // Track when we last fetched prices (updated once per hour)
 int hourLastCheck = -1;
 

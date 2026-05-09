@@ -17,8 +17,10 @@
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
 #include <FS.h>
-#include "settings.h"
 #include "helper_led.h"
+
+// Config file path (defined in settings.h, included via main .ino)
+extern const char* configFile;
 
 // DNS server for captive portal
 const byte DNS_PORT = 53;
