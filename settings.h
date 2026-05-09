@@ -1,3 +1,6 @@
+#ifndef SETTINGS_H
+#define SETTINGS_H
+
 // Default settings - these are used when no saved config exists yet
 // The WiFi config portal will allow changing these at first boot
 
@@ -26,3 +29,5 @@ const int ledBrightness = 20;
 
 // Config file in SPIFFS
 const char* configFile = "/config.txt";
+
+#endif // SETTINGS_H

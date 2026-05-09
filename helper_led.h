@@ -18,6 +18,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
+#include "helper_entsoe.h"
 
 // MATRIX DECLARATION:
 // Pin D3 = GPIO0 on Wemos D1 Mini

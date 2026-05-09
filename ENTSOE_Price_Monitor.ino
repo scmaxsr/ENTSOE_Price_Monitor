@@ -38,34 +38,17 @@ void setup() {
   Serial.println("  ENTSO-E Price Monitor v1.0");
   Serial.println("========================================");
   
-  // Initialize the LED matrix
+    // Initialize the LED matrix
   matrixInitialize();
   
   // Show a quick test pattern
   matrixShowTest();
   
-  // Initialize WiFi (starts config portal if no saved config)
-  if (!initWiFi()) {
-    // WiFi init failed or user hasn't configured yet
-    // The portal is now running - show AP mode on LED matrix
-    Serial.println("Starting AP mode - showing config portal on LED matrix");
-    apModeActive = true;
-    
-    // Stay in AP mode loop until user configures WiFi
-    while (apModeActive) {
-      matrixShowAPMode();
-      handlePortal();  // Process web server requests
-      
-      // Check if config has been saved (WiFi connected)
-      if (WiFi.status() == WL_CONNECTED || connectWithStoredConfig()) {
-        apModeActive = false;
-        Serial.println("WiFi configured! Exiting AP mode.");
-      }
-    }
-    
-    // Show test pattern again to confirm exit from AP mode
-    matrixShowTest();
-  }
+  // Initialize WiFi (automatically starts config portal if no saved config)
+  initWiFi();
+  
+  // Show test pattern again to confirm exit from AP mode
+  matrixShowTest();
   
   // Get time from NTP and set timezone (NL)
   initTime(timeZoneNL);
@@ -105,7 +88,7 @@ void loop() {
       Serial.printf("\n--- New hour: %d ---\n", hourNow);
       
       // Only fetch if WiFi is available
-      if (WiFi.status() == WL_CONNECTED || connectWithStoredConfig()) {
+      if (WiFi.status() == WL_CONNECTED) {
         
         // Fetch fresh prices from ENTSO-E
         getEntsoePrices();
@@ -124,7 +107,16 @@ void loop() {
         
       } else {
         Serial.println("WiFi not available - reconnecting...");
-        if (initWiFi()) {
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(config.ssid, config.password);
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+          delay(500);
+          Serial.print(".");
+          attempts++;
+        }
+        Serial.println();
+        if (WiFi.status() == WL_CONNECTED) {
           // Retry data fetch
           getEntsoePrices();
           matrixShowEntsoe();
