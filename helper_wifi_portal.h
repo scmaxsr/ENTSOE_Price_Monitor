@@ -161,6 +161,12 @@ void clearConfig() {
   config.configured = false;
 }
 
+// Start WiFi scan (non-blocking, results fetched later via /scan)
+void startWiFiScan() {
+  Serial.println("Starting WiFi scan...");
+  WiFi.scanNetworks(true); // async scan
+}
+
 // HTML page for the configuration portal
 const char configHTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -188,6 +194,12 @@ const char configHTML[] PROGMEM = R"rawliteral(
     .status.success { display: block; background: #00b89422; border: 1px solid #00b894; color: #00d4aa; }
     .status.error { display: block; background: #d6303122; border: 1px solid #d63031; color: #ff7675; }
     .footer { text-align: center; margin-top: 24px; font-size: 0.7em; color: #555; }
+    select { width: 100%; padding: 11px 14px; border: 1px solid #333; border-radius: 8px; background: #16213e; color: #eee; font-size: 0.95em; transition: border 0.2s; appearance: auto; }
+    select:focus { outline: none; border-color: #00d4aa; }
+    .ssid-row { display: flex; gap: 8px; }
+    .ssid-row select { flex: 1; }
+    .ssid-row button { flex: 0 0 auto; padding: 11px 14px; border: 1px solid #333; border-radius: 8px; background: #16213e; color: #eee; font-size: 0.95em; cursor: pointer; transition: border 0.2s; }
+    .ssid-row button:hover { border-color: #00d4aa; }
     .hint { background: #00d4aa11; border-left: 3px solid #00d4aa; padding: 10px; border-radius: 4px; margin-top: 18px; font-size: 0.8em; color: #bbb; }
   </style>
 </head>
@@ -198,7 +210,13 @@ const char configHTML[] PROGMEM = R"rawliteral(
     
     <form id="configForm">
       <label>WiFi SSID</label>
-      <input type="text" id="ssid" placeholder="e.g. Ziggo-1234" required>
+      <div class="ssid-row">
+        <select id="ssid" required>
+          <option value="">-- Scanning networks... --</option>
+        </select>
+        <button type="button" id="scanBtn" onclick="scanNetworks()" title="Scan again">🔄 Scan</button>
+      </div>
+      <div class="info" id="scanInfo">Scanning for WiFi networks...</div>
       
       <label>WiFi Password</label>
       <input type="password" id="password" placeholder="WiFi password">
@@ -225,6 +243,58 @@ const char configHTML[] PROGMEM = R"rawliteral(
     const form = document.getElementById('configForm');
     const status = document.getElementById('status');
     const btn = document.getElementById('saveBtn');
+    const ssidSelect = document.getElementById('ssid');
+    const scanInfo = document.getElementById('scanInfo');
+    
+    // Scan for WiFi networks
+    async function scanNetworks() {
+      scanInfo.textContent = 'Scanning for WiFi networks...';
+      ssidSelect.innerHTML = '<option value="">-- Scanning... --</option>';
+      
+      try {
+        const res = await fetch('/scan');
+        const text = await res.text();
+        
+        if (text === 'scanning') {
+          // Scan still in progress, try again after 1 second
+          setTimeout(scanNetworks, 1000);
+          return;
+        }
+        
+        const networks = JSON.parse(text);
+        
+        if (networks.length === 0) {
+          ssidSelect.innerHTML = '<option value="">-- No networks found --</option>';
+          scanInfo.textContent = 'No WiFi networks found. Try a manual scan or check if WiFi is enabled.';
+          return;
+        }
+        
+        // Sort by signal strength (RSSI, strongest first)
+        networks.sort((a, b) => b.rssi - a.rssi);
+        
+        // Build the select options
+        let html = '<option value="">-- Select a network --</option>';
+        networks.forEach(net => {
+          const bars = net.rssi > -50 ? '▂▄▆█' : net.rssi > -65 ? '▂▄▆' : net.rssi > -80 ? '▂▄' : '▂';
+          html += '<option value="' + net.ssid.replace(/"/g, '&quot;') + '">' + net.ssid + ' (' + bars + ')</option>';
+        });
+        ssidSelect.innerHTML = html;
+        scanInfo.textContent = 'Found ' + networks.length + ' network(s). Select one above.';
+        
+      } catch(err) {
+        scanInfo.textContent = 'Error scanning: ' + err.message;
+        ssidSelect.innerHTML = '<option value="">-- Scan failed --</option>';
+      }
+    }
+    
+    // Copy selected SSID to a hidden input for manual entry if needed
+    ssidSelect.addEventListener('change', function() {
+      if (this.value === '') {
+        scanInfo.textContent = 'Select a network or type one below.';
+      } else {
+        scanInfo.textContent = 'Selected: ' + this.value;
+      }
+    });
     
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -234,7 +304,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
       status.textContent = '';
       
       const data = new URLSearchParams();
-      data.append('ssid', document.getElementById('ssid').value);
+      data.append('ssid', ssidSelect.value);
       data.append('password', document.getElementById('password').value);
       data.append('apiKey', document.getElementById('apiKey').value);
       data.append('biddingZone', document.getElementById('biddingZone').value);
@@ -255,15 +325,50 @@ const char configHTML[] PROGMEM = R"rawliteral(
         }
       } catch(err) {
         status.className = 'status error';
-        status.textContent = 'Error sending: ' + err.message;
+        status.textContent = 'Error: ' + err.message;
         btn.disabled = false;
-        btn.textContent = 'Opslaan & Verbinden';
+        btn.textContent = 'Save & Connect';
       }
     });
+    
+    // Auto-scan on page load
+    scanNetworks();
   </script>
 </body>
 </html>
 )rawliteral";
+
+// Scan WiFi networks and return JSON list
+void handleScan() {
+  Serial.println("Scanning WiFi networks...");
+  int n = WiFi.scanComplete();
+  if (n == WIFI_SCAN_RUNNING) {
+    // Scan still in progress
+    server.send(200, "text/plain", "scanning");
+    return;
+  }
+  
+  String json = "[";
+  bool first = true;
+  int rssiThreshold = -90; // Skip very weak networks
+  
+  for (int i = 0; i < n; i++) {
+    if (WiFi.RSSI(i) < rssiThreshold) continue;
+    
+    if (!first) json += ",";
+    first = false;
+    
+    json += "{\"ssid\":\"";
+    json += WiFi.SSID(i);
+    json += "\",\"rssi\":";
+    json += WiFi.RSSI(i);
+    json += "}";
+  }
+  json += "]";
+  
+  server.send(200, "application/json", json);
+  Serial.printf("Found %d networks, returned %d\n", n, n);
+}
 
 // Root page - show config form
 void handleRoot() {
@@ -335,7 +440,11 @@ void startConfigPortal() {
   // Setup web server routes
   server.on("/", handleRoot);
   server.on("/save", HTTP_POST, handleSave);
+  server.on("/scan", handleScan);
   server.onNotFound(handleNotFound);
+  
+  // Start WiFi scan for available networks
+  startWiFiScan();
 
   server.begin();
   Serial.println("Web server started at http://" + apIP.toString());
