@@ -178,10 +178,13 @@ const char configHTML[] PROGMEM = R"rawliteral(
   <link rel="icon" href="data:,">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .container { max-width: 420px; width: 100%; padding: 20px; }
-    h1 { font-size: 1.4em; margin-bottom: 8px; color: #00d4aa; }
-    p { font-size: 0.85em; color: #aaa; margin-bottom: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .container { max-width: 820px; width: 100%; }
+    .layout { display: flex; gap: 24px; flex-wrap: wrap; }
+    .col-form { flex: 1; min-width: 320px; max-width: 420px; }
+    .col-help { flex: 0 0 280px; }
+    h1 { font-size: 1.4em; margin-bottom: 4px; color: #00d4aa; }
+    .subtitle { font-size: 0.85em; color: #aaa; margin-bottom: 20px; }
     label { display: block; margin-top: 14px; margin-bottom: 5px; font-weight: 600; font-size: 0.85em; color: #ccc; }
     input { width: 100%; padding: 11px 14px; border: 1px solid #333; border-radius: 8px; background: #16213e; color: #eee; font-size: 0.95em; transition: border 0.2s; }
     input:focus { outline: none; border-color: #00d4aa; }
@@ -202,58 +205,96 @@ const char configHTML[] PROGMEM = R"rawliteral(
     .ssid-row button:hover { border-color: #00d4aa; }
     #manualSsidGroup { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #333; }
     #manualSsidGroup label { margin-top: 0; font-size: 0.8em; color: #00d4aa; }
-    .hint { background: #00d4aa11; border-left: 3px solid #00d4aa; padding: 12px; border-radius: 4px; margin-top: 18px; font-size: 0.78em; color: #bbb; line-height: 1.6; }
-    .hint code { background: #00d4aa22; padding: 1px 5px; border-radius: 3px; color: #00d4aa; font-size: 0.92em; }
-    .hint strong { color: #eee; }
+    @media (max-width: 700px) { .col-help { flex: 1 1 100%; } }
+    /* Help panel */
+    .help-panel { background: #16213e; border: 1px solid #00d4aa33; border-radius: 10px; padding: 20px; font-size: 0.78em; color: #bbb; line-height: 1.7; }
+    .help-panel h2 { font-size: 1.1em; color: #00d4aa; margin-bottom: 14px; }
+    .help-panel code { background: #00d4aa22; padding: 1px 5px; border-radius: 3px; color: #00d4aa; font-size: 0.92em; }
+    .help-panel strong { color: #eee; }
+    .help-panel hr { border: none; border-top: 1px solid #333; margin: 12px 0; }
+    .help-panel .tip { margin-bottom: 10px; }
+    .help-panel .tip-icon { color: #00d4aa; margin-right: 4px; }
+    .help-badge { display: inline-block; background: #00d4aa22; color: #00d4aa; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>⚡ ENTSO-E Price Monitor</h1>
-    <p>Configure WiFi and ENTSO-E API to fetch electricity prices</p>
+    <p class="subtitle">Configure WiFi and ENTSO-E API to fetch electricity prices</p>
     
-    <form id="configForm">
-      <label>WiFi SSID</label>
-      <div class="ssid-row">
-        <select id="ssid" required>
-          <option value="">-- Scanning networks... --</option>
-        </select>
-        <button type="button" id="scanBtn" onclick="scanNetworks()" title="Scan again">🔄 Scan</button>
+    <div class="layout">
+      <!-- Left column: Configuration form -->
+      <div class="col-form">
+        <form id="configForm">
+          <label>WiFi SSID</label>
+          <div class="ssid-row">
+            <select id="ssid" required>
+              <option value="">-- Scanning networks... --</option>
+            </select>
+            <button type="button" id="scanBtn" onclick="scanNetworks()" title="Scan again">🔄 Scan</button>
+          </div>
+          <div class="info" id="scanInfo">Scanning for WiFi networks...</div>
+          
+          <div id="manualSsidGroup" style="display:none;">
+            <label>Manual SSID</label>
+            <input type="text" id="manualSsid" placeholder="Type network name manually">
+          </div>
+          
+          <label>WiFi Password</label>
+          <input type="password" id="password" placeholder="WiFi password">
+          
+          <label>ENTSO-E API Key</label>
+          <input type="text" id="apiKey" placeholder="e.g. 1d9f2b3c-..." required>
+          <div class="info">Get it at transparency.entsoe.eu → My Account</div>
+          
+          <label>Bidding Zone</label>
+          <input type="text" id="biddingZone" placeholder="10YNL----------L" value="10YNL----------L">
+          <div class="info">Default: Netherlands (10YNL----------L)</div>
+          
+          <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
+        </form>
+        
+        <div class="status" id="status"></div>
+        <div class="footer">ENTSO-E Price Monitor v1.0</div>
       </div>
-      <div class="info" id="scanInfo">Scanning for WiFi networks...</div>
       
-      <div id="manualSsidGroup" style="display:none;">
-        <label>Manual SSID</label>
-        <input type="text" id="manualSsid" placeholder="Type network name manually">
+      <!-- Right column: Help panel -->
+      <div class="col-help">
+        <div class="help-panel">
+          <h2>❓ Help &amp; Tips</h2>
+          
+          <div class="tip"><span class="tip-icon">📶</span> <strong>Signal bars</strong><br>
+          ▂ = weak &nbsp;·&nbsp; ▂▄ = fair &nbsp;·&nbsp; ▂▄▆ = good &nbsp;·&nbsp; ▂▄▆█ = excellent<br>
+          <span style="font-size:0.92em;color:#888;">Click <strong>🔄 Scan</strong> to refresh the list.</span></div>
+          
+          <hr>
+          
+          <div class="tip"><span class="tip-icon">🔑</span> <strong>ENTSO-E API Key</strong><br>
+          Get it free at <strong>transparency.entsoe.eu</strong> → My Account → Token.</div>
+          
+          <hr>
+          
+          <div class="tip"><span class="tip-icon">📍</span> <strong>Bidding Zones</strong><br>
+          • NL: <code>10YNL----------L</code><br>
+          • BE: <code>10YBE----------2</code><br>
+          • DE: <code>10Y1001A1001A82H</code><br>
+          • FR: <code>10YFR-RTE------C</code><br>
+          • UK: <code>10YGB----------A</code></div>
+          
+          <hr>
+          
+          <div class="tip"><span class="tip-icon">🔒</span> <strong>Hidden networks</strong><br>
+          Choose <em>"Other (type manually)"</em> from the dropdown to type the SSID yourself.</div>
+          
+          <hr>
+          
+          <div class="tip"><span class="tip-icon">⚡</span> <strong>After saving</strong><br>
+          The monitor will restart and connect to your WiFi. Keep the power connected!</div>
+          
+          <div class="help-badge">ESP8266 · 8×8 LED Matrix · ENTSO-E</div>
+        </div>
       </div>
-      
-      <label>WiFi Password</label>
-      <input type="password" id="password" placeholder="WiFi password">
-      
-      <label>ENTSO-E API Key</label>
-      <input type="text" id="apiKey" placeholder="e.g. 1d9f2b3c-..." required>
-      <div class="info">Get it at transparency.entsoe.eu → My Account</div>
-      
-      <label>Bidding Zone</label>
-      <input type="text" id="biddingZone" placeholder="10YNL----------L" value="10YNL----------L">
-      <div class="info">Default: Netherlands (10YNL----------L)</div>
-      
-      <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
-    </form>
-    
-    <div class="hint">
-      <strong>⚠️ Help &amp; Tips:</strong><br>
-      • <strong>WiFi:</strong> Select your network from the dropdown, or choose <em>"Other (type manually)"</em> for hidden networks.<br>
-      • <strong>Signal bars:</strong> ▂ = weak, ▂▄▆█ = strong. Click 🔄 to rescan.<br>
-      • <strong>API Key:</strong> Get it free at <strong>transparency.entsoe.eu</strong> → My Account → Security Token.<br>
-      • <strong>Bidding Zone:</strong> NL = <code>10YNL----------L</code>, BE = <code>10YBE----------2</code>, DE = <code>10Y1001A1001A82H</code>.<br>
-      • <strong>Password</strong> is optional if your network is open.<br>
-      • ⚡ After saving, the monitor will <strong>restart</strong>. Keep the power connected.
     </div>
-    
-    <div class="status" id="status"></div>
-    
-    <div class="footer">ENTSO-E Price Monitor v1.0</div>
   </div>
   
   <script>
