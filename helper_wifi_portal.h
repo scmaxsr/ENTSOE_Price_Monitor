@@ -200,7 +200,11 @@ const char configHTML[] PROGMEM = R"rawliteral(
     .ssid-row select { flex: 1; }
     .ssid-row button { flex: 0 0 auto; padding: 11px 14px; border: 1px solid #333; border-radius: 8px; background: #16213e; color: #eee; font-size: 0.95em; cursor: pointer; transition: border 0.2s; }
     .ssid-row button:hover { border-color: #00d4aa; }
-    .hint { background: #00d4aa11; border-left: 3px solid #00d4aa; padding: 10px; border-radius: 4px; margin-top: 18px; font-size: 0.8em; color: #bbb; }
+    #manualSsidGroup { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #333; }
+    #manualSsidGroup label { margin-top: 0; font-size: 0.8em; color: #00d4aa; }
+    .hint { background: #00d4aa11; border-left: 3px solid #00d4aa; padding: 12px; border-radius: 4px; margin-top: 18px; font-size: 0.78em; color: #bbb; line-height: 1.6; }
+    .hint code { background: #00d4aa22; padding: 1px 5px; border-radius: 3px; color: #00d4aa; font-size: 0.92em; }
+    .hint strong { color: #eee; }
   </style>
 </head>
 <body>
@@ -218,6 +222,11 @@ const char configHTML[] PROGMEM = R"rawliteral(
       </div>
       <div class="info" id="scanInfo">Scanning for WiFi networks...</div>
       
+      <div id="manualSsidGroup" style="display:none;">
+        <label>Manual SSID</label>
+        <input type="text" id="manualSsid" placeholder="Type network name manually">
+      </div>
+      
       <label>WiFi Password</label>
       <input type="password" id="password" placeholder="WiFi password">
       
@@ -232,7 +241,15 @@ const char configHTML[] PROGMEM = R"rawliteral(
       <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
     </form>
     
-    <div class="hint">⚠️ After saving, the monitor will restart. Keep the power connected.</div>
+    <div class="hint">
+      <strong>⚠️ Help &amp; Tips:</strong><br>
+      • <strong>WiFi:</strong> Select your network from the dropdown, or choose <em>"Other (type manually)"</em> for hidden networks.<br>
+      • <strong>Signal bars:</strong> ▂ = weak, ▂▄▆█ = strong. Click 🔄 to rescan.<br>
+      • <strong>API Key:</strong> Get it free at <strong>transparency.entsoe.eu</strong> → My Account → Security Token.<br>
+      • <strong>Bidding Zone:</strong> NL = <code>10YNL----------L</code>, BE = <code>10YBE----------2</code>, DE = <code>10Y1001A1001A82H</code>.<br>
+      • <strong>Password</strong> is optional if your network is open.<br>
+      • ⚡ After saving, the monitor will <strong>restart</strong>. Keep the power connected.
+    </div>
     
     <div class="status" id="status"></div>
     
@@ -278,8 +295,9 @@ const char configHTML[] PROGMEM = R"rawliteral(
           const bars = net.rssi > -50 ? '▂▄▆█' : net.rssi > -65 ? '▂▄▆' : net.rssi > -80 ? '▂▄' : '▂';
           html += '<option value="' + net.ssid.replace(/"/g, '&quot;') + '">' + net.ssid + ' (' + bars + ')</option>';
         });
+        html += '<option value="__manual__" style="color:#00d4aa;">✏️ Other (type manually)...</option>';
         ssidSelect.innerHTML = html;
-        scanInfo.textContent = 'Found ' + networks.length + ' network(s). Select one above.';
+        scanInfo.textContent = 'Found ' + networks.length + ' network(s). Select one above, or choose "Other" to type manually.';
         
       } catch(err) {
         scanInfo.textContent = 'Error scanning: ' + err.message;
@@ -287,12 +305,22 @@ const char configHTML[] PROGMEM = R"rawliteral(
       }
     }
     
-    // Copy selected SSID to a hidden input for manual entry if needed
+    // Handle manual SSID entry
     ssidSelect.addEventListener('change', function() {
-      if (this.value === '') {
-        scanInfo.textContent = 'Select a network or type one below.';
+      const manualGroup = document.getElementById('manualSsidGroup');
+      if (this.value === '__manual__') {
+        manualGroup.style.display = 'block';
+        document.getElementById('manualSsid').required = true;
+        document.getElementById('manualSsid').focus();
+        scanInfo.textContent = 'Type your network name manually below.';
       } else {
-        scanInfo.textContent = 'Selected: ' + this.value;
+        manualGroup.style.display = 'none';
+        document.getElementById('manualSsid').required = false;
+        if (this.value === '') {
+          scanInfo.textContent = 'Select a network from the list.';
+        } else {
+          scanInfo.textContent = 'Selected: ' + this.value;
+        }
       }
     });
     
@@ -303,8 +331,14 @@ const char configHTML[] PROGMEM = R"rawliteral(
       status.className = 'status';
       status.textContent = '';
       
+      // Use manual SSID if "Other" is selected
+      let finalSsid = ssidSelect.value;
+      if (finalSsid === '__manual__') {
+        finalSsid = document.getElementById('manualSsid').value;
+      }
+      
       const data = new URLSearchParams();
-      data.append('ssid', ssidSelect.value);
+      data.append('ssid', finalSsid);
       data.append('password', document.getElementById('password').value);
       data.append('apiKey', document.getElementById('apiKey').value);
       data.append('biddingZone', document.getElementById('biddingZone').value);
