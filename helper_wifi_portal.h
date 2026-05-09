@@ -191,12 +191,20 @@ const char configHTML[] PROGMEM = R"rawliteral(
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { max-width: 820px; width: 100%; }
-    .layout { display: flex; gap: 24px; flex-wrap: wrap; }
-    .col-form { flex: 1; min-width: 320px; max-width: 420px; }
-    .col-help { flex: 0 0 280px; }
-    h1 { font-size: 1.4em; margin-bottom: 4px; color: #00d4aa; }
-    .subtitle { font-size: 0.85em; color: #aaa; margin-bottom: 20px; }
+    .container { max-width: 960px; width: 100%; }
+    .layout { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+    .col-form { flex: 1 1 380px; max-width: 480px; min-width: 300px; display: flex; flex-direction: column; }
+    .col-help { flex: 1 1 380px; max-width: 480px; min-width: 300px; display: flex; flex-direction: column; }
+    .col-form .card, .col-help .card { flex: 1; display: flex; flex-direction: column; }
+    .help-panel { flex: 1; background: #16213e; border: 1px solid #00d4aa33; border-radius: 10px; padding: 20px; font-size: 0.78em; color: #bbb; line-height: 1.7; }
+    .help-panel h2 { font-size: 1.1em; color: #00d4aa; margin-bottom: 14px; }
+    .help-panel code { background: #00d4aa22; padding: 1px 5px; border-radius: 3px; color: #00d4aa; font-size: 0.92em; }
+    .help-panel hr { border: none; border-top: 1px solid #333; margin: 12px 0; }
+    .help-panel .tip { margin-bottom: 10px; }
+    .help-panel .tip-icon { color: #00d4aa; margin-right: 4px; }
+    .help-badge { display: inline-block; background: #00d4aa22; color: #00d4aa; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-top: 10px; }
+    h1 { font-size: 1.4em; margin-bottom: 4px; color: #00d4aa; text-align: center; }
+    .subtitle { font-size: 0.85em; color: #aaa; margin-bottom: 20px; text-align: center; }
     label { display: block; margin-top: 14px; margin-bottom: 5px; font-weight: 600; font-size: 0.85em; color: #ccc; }
     input { width: 100%; padding: 11px 14px; border: 1px solid #333; border-radius: 8px; background: #16213e; color: #eee; font-size: 0.95em; transition: border 0.2s; }
     input:focus { outline: none; border-color: #00d4aa; }
@@ -208,7 +216,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
     .status { margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 0.85em; display: none; }
     .status.success { display: block; background: #00b89422; border: 1px solid #00b894; color: #00d4aa; }
     .status.error { display: block; background: #d6303122; border: 1px solid #d63031; color: #ff7675; }
-    .footer { text-align: center; margin-top: 24px; font-size: 0.7em; color: #555; }
+    .footer { text-align: center; font-size: 0.7em; color: #555; border-top: 1px solid #2a2a4e; padding-top: 14px; margin-top: auto; }
     select { width: 100%; padding: 11px 14px; border: 1px solid #333; border-radius: 8px; background: #16213e; color: #eee; font-size: 0.95em; transition: border 0.2s; appearance: auto; }
     select:focus { outline: none; border-color: #00d4aa; }
     .ssid-row { display: flex; gap: 8px; }
@@ -219,14 +227,9 @@ const char configHTML[] PROGMEM = R"rawliteral(
     #manualSsidGroup label { margin-top: 0; font-size: 0.8em; color: #00d4aa; }
     @media (max-width: 700px) { .col-help { flex: 1 1 100%; } }
     /* Help panel */
-    .help-panel { background: #16213e; border: 1px solid #00d4aa33; border-radius: 10px; padding: 20px; font-size: 0.78em; color: #bbb; line-height: 1.7; }
-    .help-panel h2 { font-size: 1.1em; color: #00d4aa; margin-bottom: 14px; }
-    .help-panel code { background: #00d4aa22; padding: 1px 5px; border-radius: 3px; color: #00d4aa; font-size: 0.92em; }
     .help-panel strong { color: #eee; }
-    .help-panel hr { border: none; border-top: 1px solid #333; margin: 12px 0; }
     .help-panel .tip { margin-bottom: 10px; }
     .help-panel .tip-icon { color: #00d4aa; margin-right: 4px; }
-    .help-badge { display: inline-block; background: #00d4aa22; color: #00d4aa; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -237,6 +240,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
     <div class="layout">
       <!-- Left column: Configuration form -->
       <div class="col-form">
+        <div class="card">
         <form id="configForm">
           <label>WiFi SSID</label>
           <div class="ssid-row">
@@ -259,31 +263,71 @@ const char configHTML[] PROGMEM = R"rawliteral(
           <input type="text" id="apiKey" placeholder="e.g. 1d9f2b3c-..." required>
           <div class="info">Get it at transparency.entsoe.eu → My Account</div>
           
-          <label>Bidding Zone</label>
-          <input type="text" id="biddingZone" placeholder="10YNL----------L" value="10YNL----------L">
-          <div class="info">Default: Netherlands (10YNL----------L)</div>
+          <label>Country / Bidding Zone</label>
+          <select id="biddingZone" onchange="updateTimezone()">
+            <option value="10YNL----------L">🇳🇱 Netherlands (NL)</option>
+            <option value="10YBE----------2">🇧🇪 Belgium (BE)</option>
+            <option value="10Y1001A1001A82H">🇩🇪 Germany (DE/LU)</option>
+            <option value="10YFR-RTE------C">🇫🇷 France (FR)</option>
+            <option value="10YGB----------A">🇬🇧 United Kingdom (UK)</option>
+            <option value="10Y1001A1001A83F">🇩🇰 Denmark (DK)</option>
+            <option value="10YSE-1--------K">🇸🇪 Sweden (SE)</option>
+            <option value="10YNO-0--------C">🇳🇴 Norway (NO)</option>
+            <option value="10YPL-AREA-----S">🇵🇱 Poland (PL)</option>
+            <option value="10YES-REE------0">🇪🇸 Spain (ES)</option>
+            <option value="10YPT-REN------W">🇵🇹 Portugal (PT)</option>
+            <option value="10YIT-GRTN-----B">🇮🇹 Italy (IT)</option>
+            <option value="10YAT-APG------L">🇦🇹 Austria (AT)</option>
+            <option value="10YCH-SWISSGRIDZ">🇨🇭 Switzerland (CH)</option>
+            <option value="10YCZ-CEPS-----N">🇨🇿 Czech Republic (CZ)</option>
+            <option value="10YSK-SEPS-----K">🇸🇰 Slovakia (SK)</option>
+            <option value="10YHU-MAVIR----U">🇭🇺 Hungary (HU)</option>
+            <option value="10YSI-ELES-----O">🇸🇮 Slovenia (SI)</option>
+            <option value="10YHR-HEP------M">🇭🇷 Croatia (HR)</option>
+            <option value="10YRO-TEL------P">🇷🇴 Romania (RO)</option>
+            <option value="10YBG-ELECTR--E">🇧🇬 Bulgaria (BG)</option>
+            <option value="10YGR-HTSO-----Y">🇬🇷 Greece (GR)</option>
+            <option value="10YIE-1001A00010">🇮🇪 Ireland (IE)</option>
+            <option value="10YFI-1--------U">🇫🇮 Finland (FI)</option>
+            <option value="10YLT-1001A0008Q">🇱🇹 Lithuania (LT)</option>
+            <option value="10YLV-1001A00074">🇱🇻 Latvia (LV)</option>
+            <option value="10YEE-1001A00078">🇪🇪 Estonia (EE)</option>
+            <option value="10YNL----------L" style="color:#00d4aa;">✏️ Other (type EIC code)...</option>
+          </select>
+          <div class="info">Bidding zone: <span id="zoneCodeDisplay">10YNL----------L</span></div>
           
-          <label>Timezone</label>
-          <select id="timezone">
-            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇳🇱 Amsterdam (CET/CEST) UTC+1/+2</option>
-            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇧🇪 Brussels (CET/CEST) UTC+1/+2</option>
-            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇩🇪 Berlin (CET/CEST) UTC+1/+2</option>
-            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇫🇷 Paris (CET/CEST) UTC+1/+2</option>
-            <option value="GMT0">🇬🇧 London (GMT/BST) UTC+0/+1</option>
-            <option value="EST5EDT,M3.2.0,M11.1.0">🇺🇸 New York (EST/EDT) UTC-5/-4</option>
-            <option value="PST8PDT,M3.2.0,M11.1.0">🇺🇸 Los Angeles (PST/PDT) UTC-8/-7</option>
-            <option value="CET-2CEST,M3.5.0,M10.5.0/3">🇸🇪 Stockholm (CET/CEST) UTC+2/+3</option>
-            <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">🇬🇷 Athens (EET/EEST) UTC+2/+3</option>
-            <option value="JST-9">🇯🇵 Tokyo (JST) UTC+9</option>
-            <option value="AEST-10AEDT,M10.1.0,M4.1.0/3">🇦🇺 Sydney (AEST/AEDT) UTC+10/+11</option>
+          <div id="manualZoneGroup" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed #333;">
+            <label style="margin-top:0;font-size:0.8em;color:#00d4aa;">Custom Bidding Zone EIC Code</label>
+            <input type="text" id="manualZone" placeholder="e.g. 10YNL----------L">
+          </div>
+          
+          <label>Timezone <span id="tzAutoLabel" style="font-size:0.75em;color:#00d4aa;">(auto-set from country)</span></label>
+          <select id="timezone" onchange="tzChangedManually()">
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇳🇱/🇧🇪/🇩🇪/🇫🇷 CET/CEST - UTC+1/+2</option>
+            <option value="GMT0">🇬🇧/🇮🇪 GMT/BST - UTC+0/+1</option>
+            <option value="CET-2CEST,M3.5.0,M10.5.0/3">🇸🇪/🇩🇰/🇳🇴/🇫🇮 CET/CEST - UTC+2/+3</option>
+            <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">🇬🇷/🇧🇬/🇷🇴 EET/EEST - UTC+2/+3</option>
+            <option value="WET-1WEST-1,M3.5.0/1,M10.5.0">🇵🇹 WET/WEST - UTC+0/+1</option>
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇵🇱/🇨🇿/🇸🇰/🇭🇺/🇦🇹 CET/CEST - UTC+1/+2</option>
+            <option value="CET-1CEST-2,M3.5.0/2,M10.5.0/3">🇮🇹/🇸🇮/🇭🇷 CET/CEST - UTC+1/+2</option>
+            <option value="EST5EDT,M3.2.0,M11.1.0">🇺🇸 Eastern (EST/EDT) - UTC-5/-4</option>
+            <option value="CST6CDT,M3.2.0,M11.1.0">🇺🇸 Central (CST/CDT) - UTC-6/-5</option>
+            <option value="MST7MDT,M3.2.0,M11.1.0">🇺🇸 Mountain (MST/MDT) - UTC-7/-6</option>
+            <option value="PST8PDT,M3.2.0,M11.1.0">🇺🇸 Pacific (PST/PDT) - UTC-8/-7</option>
+            <option value="EST5EDT,M3.2.0,M11.1.0">🇨🇦 Eastern (EST/EDT) - UTC-5/-4</option>
+            <option value="JST-9">🇯🇵 Tokyo (JST) - UTC+9</option>
+            <option value="AEST-10AEDT,M10.1.0,M4.1.0/3">🇦🇺 Sydney (AEDT) - UTC+10/+11</option>
+            <option value="NZST-12NZDT,M9.1.0,M4.1.0/3">🇳🇿 New Zealand - UTC+12/+13</option>
             <option value="__custom__" style="color:#00d4aa;">✏️ Other (type POSIX string)...</option>
           </select>
-          <div class="info" id="tzInfo">Select your local timezone for correct hour display.</div>
+          <div class="info" id="tzInfo">Timezone is automatically set based on your country selection above.</div>
           
           <div id="manualTzGroup" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed #333;">
             <label style="margin-top:0;font-size:0.8em;color:#00d4aa;">Custom POSIX Timezone</label>
             <input type="text" id="manualTz" placeholder="e.g. CET-1CEST,M3.5.0,M10.5.0/3">
           </div>
+          
+          <input type="hidden" id="tzAutoSet" value="true">
           
           <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
         </form>
@@ -291,9 +335,11 @@ const char configHTML[] PROGMEM = R"rawliteral(
         <div class="status" id="status"></div>
         <div class="footer">ENTSO-E Price Monitor v1.0</div>
       </div>
+      </div>
       
       <!-- Right column: Help panel -->
       <div class="col-help">
+        <div class="card">
         <div class="help-panel">
           <h2>❓ Help &amp; Tips</h2>
           
@@ -308,12 +354,8 @@ const char configHTML[] PROGMEM = R"rawliteral(
           
           <hr>
           
-          <div class="tip"><span class="tip-icon">📍</span> <strong>Bidding Zones</strong><br>
-          • NL: <code>10YNL----------L</code><br>
-          • BE: <code>10YBE----------2</code><br>
-          • DE: <code>10Y1001A1001A82H</code><br>
-          • FR: <code>10YFR-RTE------C</code><br>
-          • UK: <code>10YGB----------A</code></div>
+          <div class="tip"><span class="tip-icon">📍</span> <strong>Country → Zone</strong><br>
+          Select your country and the bidding zone + timezone are set automatically. Choose <em>"Other"</em> at the bottom for custom EIC codes.</div>
           
           <hr>
           
@@ -323,7 +365,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
           <hr>
           
           <div class="tip"><span class="tip-icon">🌍</span> <strong>Timezone</strong><br>
-          The LED matrix shows your local hours. Select your timezone so the display is correct for your location. Europe uses CET/CEST, US uses EST/EDT or PST/PDT.</div>
+          Automatically set from your country selection! The LED matrix shows <strong>local hours</strong>. Manually override if needed.</div>
           
           <hr>
           
@@ -332,6 +374,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
           
           <div class="help-badge">ESP8266 · 8×8 LED Matrix · ENTSO-E</div>
         </div>
+      </div>
       </div>
     </div>
   </div>
@@ -385,20 +428,93 @@ const char configHTML[] PROGMEM = R"rawliteral(
       }
     }
     
-    // Handle custom timezone entry
+    // Map bidding zones to timezones (country -> POSIX timezone)
+    const zoneTimezone = {
+      "10YNL----------L": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YBE----------2": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10Y1001A1001A82H": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YFR-RTE------C": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YGB----------A": "GMT0",
+      "10Y1001A1001A83F": "CET-2CEST,M3.5.0,M10.5.0/3",
+      "10YSE-1--------K": "CET-2CEST,M3.5.0,M10.5.0/3",
+      "10YNO-0--------C": "CET-2CEST,M3.5.0,M10.5.0/3",
+      "10YPL-AREA-----S": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YES-REE------0": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YPT-REN------W": "WET-1WEST-1,M3.5.0/1,M10.5.0",
+      "10YIT-GRTN-----B": "CET-1CEST-2,M3.5.0/2,M10.5.0/3",
+      "10YAT-APG------L": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YCH-SWISSGRIDZ": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YCZ-CEPS-----N": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YSK-SEPS-----K": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YHU-MAVIR----U": "CET-1CEST,M3.5.0,M10.5.0/3",
+      "10YSI-ELES-----O": "CET-1CEST-2,M3.5.0/2,M10.5.0/3",
+      "10YHR-HEP------M": "CET-1CEST-2,M3.5.0/2,M10.5.0/3",
+      "10YRO-TEL------P": "EET-2EEST,M3.5.0/3,M10.5.0/4",
+      "10YBG-ELECTR--E": "EET-2EEST,M3.5.0/3,M10.5.0/4",
+      "10YGR-HTSO-----Y": "EET-2EEST,M3.5.0/3,M10.5.0/4",
+      "10YIE-1001A00010": "GMT0",
+      "10YFI-1--------U": "CET-2CEST,M3.5.0,M10.5.0/3",
+      "10YLT-1001A0008Q": "EET-2EEST,M3.5.0/3,M10.5.0/4",
+      "10YLV-1001A00074": "EET-2EEST,M3.5.0/3,M10.5.0/4",
+      "10YEE-1001A00078": "EET-2EEST,M3.5.0/3,M10.5.0/4"
+    };
+    
     const tzSelect = document.getElementById('timezone');
     const tzInfo = document.getElementById('tzInfo');
+    const tzAutoLabel = document.getElementById('tzAutoLabel');
+    const tzAutoSet = document.getElementById('tzAutoSet');
+    const zoneSelect = document.getElementById('biddingZone');
+    const zoneCodeDisplay = document.getElementById('zoneCodeDisplay');
+    
+    // Update timezone when bidding zone is selected
+    function updateTimezone() {
+      const zone = zoneSelect.value;
+      zoneCodeDisplay.textContent = zone;
+      
+      // Check if "Other" is selected (same value as NL hidden at bottom)
+      const manualZoneGroup = document.getElementById('manualZoneGroup');
+      if (zone === '__manual__' || zoneSelect.selectedIndex === zoneSelect.options.length - 1) {
+        manualZoneGroup.style.display = 'block';
+        document.getElementById('manualZone').focus();
+        zoneCodeDisplay.textContent = 'type manually below';
+        return;
+      } else {
+        manualZoneGroup.style.display = 'none';
+      }
+      
+      // Auto-set timezone from bidding zone
+      if (zoneTimezone[zone]) {
+        tzSelect.value = zoneTimezone[zone];
+        tzAutoSet.value = 'true';
+        tzAutoLabel.style.display = 'inline';
+        tzInfo.textContent = 'Auto-set: ' + tzSelect.options[tzSelect.selectedIndex].text;
+      }
+    }
+    
+    // Handle manual timezone entry
     tzSelect.addEventListener('change', function() {
       const manualGroup = document.getElementById('manualTzGroup');
       if (this.value === '__custom__') {
         manualGroup.style.display = 'block';
         document.getElementById('manualTz').focus();
         tzInfo.textContent = 'Type a POSIX timezone string (e.g. CET-1CEST,...)';
+        tzAutoLabel.style.display = 'none';
       } else {
         manualGroup.style.display = 'none';
-        tzInfo.textContent = 'Selected: ' + this.options[this.selectedIndex].text;
+        tzAutoSet.value = 'false';
+        tzAutoLabel.style.display = 'none';
+        tzInfo.textContent = 'Manually selected: ' + this.options[this.selectedIndex].text;
       }
     });
+    
+    // Allow manual override of timezone
+    function tzChangedManually() {
+      if (tzSelect.value !== '__custom__') {
+        tzAutoSet.value = 'false';
+        tzAutoLabel.style.display = 'none';
+        tzInfo.textContent = 'Manually selected: ' + tzSelect.options[tzSelect.selectedIndex].text;
+      }
+    }
     
     // Handle manual SSID entry
     ssidSelect.addEventListener('change', function() {
@@ -432,6 +548,13 @@ const char configHTML[] PROGMEM = R"rawliteral(
         finalSsid = document.getElementById('manualSsid').value;
       }
       
+      // Use custom bidding zone if "Other" is selected
+      let finalZone = zoneSelect.value;
+      const isOther = (zoneSelect.selectedIndex === zoneSelect.options.length - 1);
+      if (isOther) {
+        finalZone = document.getElementById('manualZone').value;
+      }
+      
       // Use custom timezone if "Other" is selected
       let finalTz = tzSelect.value;
       if (finalTz === '__custom__') {
@@ -442,7 +565,7 @@ const char configHTML[] PROGMEM = R"rawliteral(
       data.append('ssid', finalSsid);
       data.append('password', document.getElementById('password').value);
       data.append('apiKey', document.getElementById('apiKey').value);
-      data.append('biddingZone', document.getElementById('biddingZone').value);
+      data.append('biddingZone', finalZone);
       data.append('timezone', finalTz);
       
       try {

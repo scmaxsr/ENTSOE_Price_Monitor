@@ -29,5 +29,6 @@ const int ledBrightness = 20;
 
 // Config file in SPIFFS
 static const char* configFile = "/config.txt";
+const char* portalDomain = "pricemonitor.lan";
 
 #endif // SETTINGS_H
