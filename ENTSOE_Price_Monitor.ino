@@ -53,8 +53,8 @@ void setup() {
   // Show test pattern again to confirm exit from AP mode
   matrixShowTest();
   
-  // Get time from NTP and set timezone (NL)
-  initTime(timeZoneNL);
+  // Get time from NTP and set timezone (from config)
+  initTime(config.timezone);
   
   // Show connecting animation while we fetch initial data
   Serial.println("Fetching initial data from ENTSO-E...");
@@ -64,7 +64,7 @@ void setup() {
   matrixShowEntsoe();
   
   // Update time again after API call
-  updateTime(timeZoneNL);
+  updateTime(config.timezone);
   
   // Disconnect WiFi to save power
   disconnectWiFi();
@@ -100,7 +100,7 @@ void loop() {
         matrixShowEntsoe();
         
         // Update time from NTP
-        updateTime(timeZoneNL);
+        updateTime(config.timezone);
         
         // Mark this hour as checked
         hourLastCheck = hourNow;

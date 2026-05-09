@@ -35,6 +35,7 @@ struct Config {
   char password[64];
   char apiKey[48];
   char biddingZone[24];
+  char timezone[40];
   bool configured;
 };
 
@@ -52,6 +53,7 @@ bool connectWithStoredConfig();
 void disconnectWiFi();
 const char* getApiKey();
 const char* getBiddingZone();
+const char* getTimezone();
 
 // Load config from SPIFFS
 bool loadConfig() {
@@ -77,10 +79,11 @@ bool loadConfig() {
   file.close();
   SPIFFS.end();
 
-  // Parse the config (format: ssid|password|apiKey|biddingZone)
+  // Parse the config (format: ssid|password|apiKey|biddingZone|timezone)
   int p1 = content.indexOf('|');
   int p2 = content.indexOf('|', p1 + 1);
   int p3 = content.indexOf('|', p2 + 1);
+  int p4 = content.indexOf('|', p3 + 1);
 
   if (p1 == -1 || p2 == -1 || p3 == -1) {
     Serial.println("Invalid config format");
@@ -90,7 +93,15 @@ bool loadConfig() {
   content.substring(0, p1).toCharArray(config.ssid, sizeof(config.ssid));
   content.substring(p1 + 1, p2).toCharArray(config.password, sizeof(config.password));
   content.substring(p2 + 1, p3).toCharArray(config.apiKey, sizeof(config.apiKey));
-  content.substring(p3 + 1).toCharArray(config.biddingZone, sizeof(config.biddingZone));
+  
+  if (p4 == -1) {
+    // Legacy format (4 fields) - assume NL timezone
+    content.substring(p3 + 1).toCharArray(config.biddingZone, sizeof(config.biddingZone));
+    strcpy(config.timezone, "CET-1CEST,M3.5.0,M10.5.0/3");
+  } else {
+    content.substring(p3 + 1, p4).toCharArray(config.biddingZone, sizeof(config.biddingZone));
+    content.substring(p4 + 1).toCharArray(config.timezone, sizeof(config.timezone));
+  }
   
   // Trim any whitespace/newlines
   for (int i = strlen(config.biddingZone) - 1; i >= 0; i--) {
@@ -126,7 +137,8 @@ bool saveConfig() {
   String content = String(config.ssid) + "|" + 
                    String(config.password) + "|" + 
                    String(config.apiKey) + "|" + 
-                   String(config.biddingZone);
+                   String(config.biddingZone) + "|" +
+                   String(config.timezone);
 
   file.print(content);
   file.close();
@@ -251,6 +263,28 @@ const char configHTML[] PROGMEM = R"rawliteral(
           <input type="text" id="biddingZone" placeholder="10YNL----------L" value="10YNL----------L">
           <div class="info">Default: Netherlands (10YNL----------L)</div>
           
+          <label>Timezone</label>
+          <select id="timezone">
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇳🇱 Amsterdam (CET/CEST) UTC+1/+2</option>
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇧🇪 Brussels (CET/CEST) UTC+1/+2</option>
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇩🇪 Berlin (CET/CEST) UTC+1/+2</option>
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">🇫🇷 Paris (CET/CEST) UTC+1/+2</option>
+            <option value="GMT0">🇬🇧 London (GMT/BST) UTC+0/+1</option>
+            <option value="EST5EDT,M3.2.0,M11.1.0">🇺🇸 New York (EST/EDT) UTC-5/-4</option>
+            <option value="PST8PDT,M3.2.0,M11.1.0">🇺🇸 Los Angeles (PST/PDT) UTC-8/-7</option>
+            <option value="CET-2CEST,M3.5.0,M10.5.0/3">🇸🇪 Stockholm (CET/CEST) UTC+2/+3</option>
+            <option value="EET-2EEST,M3.5.0/3,M10.5.0/4">🇬🇷 Athens (EET/EEST) UTC+2/+3</option>
+            <option value="JST-9">🇯🇵 Tokyo (JST) UTC+9</option>
+            <option value="AEST-10AEDT,M10.1.0,M4.1.0/3">🇦🇺 Sydney (AEST/AEDT) UTC+10/+11</option>
+            <option value="__custom__" style="color:#00d4aa;">✏️ Other (type POSIX string)...</option>
+          </select>
+          <div class="info" id="tzInfo">Select your local timezone for correct hour display.</div>
+          
+          <div id="manualTzGroup" style="display:none; margin-top:8px; padding-top:8px; border-top:1px dashed #333;">
+            <label style="margin-top:0;font-size:0.8em;color:#00d4aa;">Custom POSIX Timezone</label>
+            <input type="text" id="manualTz" placeholder="e.g. CET-1CEST,M3.5.0,M10.5.0/3">
+          </div>
+          
           <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
         </form>
         
@@ -285,6 +319,11 @@ const char configHTML[] PROGMEM = R"rawliteral(
           
           <div class="tip"><span class="tip-icon">🔒</span> <strong>Hidden networks</strong><br>
           Choose <em>"Other (type manually)"</em> from the dropdown to type the SSID yourself.</div>
+          
+          <hr>
+          
+          <div class="tip"><span class="tip-icon">🌍</span> <strong>Timezone</strong><br>
+          The LED matrix shows your local hours. Select your timezone so the display is correct for your location. Europe uses CET/CEST, US uses EST/EDT or PST/PDT.</div>
           
           <hr>
           
@@ -346,6 +385,21 @@ const char configHTML[] PROGMEM = R"rawliteral(
       }
     }
     
+    // Handle custom timezone entry
+    const tzSelect = document.getElementById('timezone');
+    const tzInfo = document.getElementById('tzInfo');
+    tzSelect.addEventListener('change', function() {
+      const manualGroup = document.getElementById('manualTzGroup');
+      if (this.value === '__custom__') {
+        manualGroup.style.display = 'block';
+        document.getElementById('manualTz').focus();
+        tzInfo.textContent = 'Type a POSIX timezone string (e.g. CET-1CEST,...)';
+      } else {
+        manualGroup.style.display = 'none';
+        tzInfo.textContent = 'Selected: ' + this.options[this.selectedIndex].text;
+      }
+    });
+    
     // Handle manual SSID entry
     ssidSelect.addEventListener('change', function() {
       const manualGroup = document.getElementById('manualSsidGroup');
@@ -378,11 +432,18 @@ const char configHTML[] PROGMEM = R"rawliteral(
         finalSsid = document.getElementById('manualSsid').value;
       }
       
+      // Use custom timezone if "Other" is selected
+      let finalTz = tzSelect.value;
+      if (finalTz === '__custom__') {
+        finalTz = document.getElementById('manualTz').value;
+      }
+      
       const data = new URLSearchParams();
       data.append('ssid', finalSsid);
       data.append('password', document.getElementById('password').value);
       data.append('apiKey', document.getElementById('apiKey').value);
       data.append('biddingZone', document.getElementById('biddingZone').value);
+      data.append('timezone', finalTz);
       
       try {
         const res = await fetch('/save', { method: 'POST', body: data });
@@ -461,6 +522,7 @@ void handleSave() {
   String password = server.arg("password");
   String apiKey = server.arg("apiKey");
   String biddingZone = server.arg("biddingZone");
+  String timezone = server.arg("timezone");
 
   if (ssid.length() == 0 || apiKey.length() == 0) {
     server.send(400, "text/plain", "SSID and API Key cannot be empty");
@@ -471,10 +533,15 @@ void handleSave() {
     biddingZone = "10YNL----------L"; // Default NL zone
   }
 
+  if (timezone.length() == 0) {
+    timezone = "CET-1CEST,M3.5.0,M10.5.0/3"; // Default NL timezone
+  }
+
   ssid.toCharArray(config.ssid, sizeof(config.ssid));
   password.toCharArray(config.password, sizeof(config.password));
   apiKey.toCharArray(config.apiKey, sizeof(config.apiKey));
   biddingZone.toCharArray(config.biddingZone, sizeof(config.biddingZone));
+  timezone.toCharArray(config.timezone, sizeof(config.timezone));
   config.configured = true;
 
   if (saveConfig()) {
@@ -608,5 +675,6 @@ void disconnectWiFi() {
 // Getter functions for config values
 const char* getApiKey() { return config.apiKey; }
 const char* getBiddingZone() { return config.biddingZone; }
+const char* getTimezone() { return config.timezone; }
 
 #endif // HELPER_WIFI_PORTAL_H
