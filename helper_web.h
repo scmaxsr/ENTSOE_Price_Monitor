@@ -236,6 +236,28 @@ const char settingsHTML[] PROGMEM = R"rawliteral(
         <input type="text" id="timezone" placeholder="e.g. CET-1CEST,M3.5.0,M10.5.0/3">
         <div class="info">Amsterdam: CET-1CEST,... · London: GMT0 · New York: EST5EDT,...</div>
         
+        <h3 style="color:#00d4aa; font-size:0.9em; margin-top:18px; border-top:1px solid #00d4aa22; padding-top:14px;">💤 Deep Sleep Schedule</h3>
+        
+        <label>Sleep start hour</label>
+        <select id="sleepStart" style="width:100%;">
+          <option value="21">21:00 (9 PM)</option>
+          <option value="22">22:00 (10 PM)</option>
+          <option value="23">23:00 (11 PM)</option>
+          <option value="0">00:00 (Midnight)</option>
+          <option value="1">01:00</option>
+          <option value="2">02:00</option>
+        </select>
+        
+        <label>Sleep end hour</label>
+        <select id="sleepEnd" style="width:100%;">
+          <option value="5">05:00</option>
+          <option value="6">06:00</option>
+          <option value="7">07:00</option>
+          <option value="8">08:00</option>
+          <option value="9">09:00</option>
+        </select>
+        <div class="info">Between these hours, the device wakes every 15 minutes to update prices but stays in low power mode.</div>
+        
         <button type="submit" class="btn">Save Settings & Restart</button>
       </form>
       <div class="status" id="status"></div>
@@ -255,6 +277,8 @@ const char settingsHTML[] PROGMEM = R"rawliteral(
         document.getElementById('apiKey').value = data.apiKey || '';
         document.getElementById('biddingZone').value = data.biddingZone || '';
         document.getElementById('timezone').value = data.timezone || '';
+        if (data.sleepStart !== undefined) document.getElementById('sleepStart').value = data.sleepStart;
+        if (data.sleepEnd !== undefined) document.getElementById('sleepEnd').value = data.sleepEnd;
       } catch(e) {
         status.className = 'status error';
         status.textContent = 'Error: ' + e.message;
@@ -275,6 +299,8 @@ const char settingsHTML[] PROGMEM = R"rawliteral(
       data.append('apiKey', document.getElementById('apiKey').value);
       data.append('biddingZone', document.getElementById('biddingZone').value);
       data.append('timezone', document.getElementById('timezone').value);
+      data.append('sleepStart', document.getElementById('sleepStart').value);
+      data.append('sleepEnd', document.getElementById('sleepEnd').value);
       
       try {
         const res = await fetch('/api/config', { method: 'POST', body: data });
@@ -425,6 +451,8 @@ void handleApiConfig() {
   json += ",\"apiKey\":\"" + String(config.apiKey) + "\"";
   json += ",\"biddingZone\":\"" + String(config.biddingZone) + "\"";
   json += ",\"timezone\":\"" + String(config.timezone) + "\"";
+  json += ",\"sleepStart\":" + String(config.sleepStart);
+  json += ",\"sleepEnd\":" + String(config.sleepEnd);
   json += ",\"configured\":" + String(config.configured ? "true" : "false");
   json += "}";
   server.send(200, "application/json", json);
@@ -450,6 +478,14 @@ void handleApiSaveConfig() {
   
   if (biddingZone.length() == 0) biddingZone = "10YNL----------L";
   if (timezone.length() == 0) timezone = "CET-1CEST,M3.5.0,M10.5.0/3";
+  
+  // Parse sleep schedule
+  String sleepStartStr = server.arg("sleepStart");
+  String sleepEndStr = server.arg("sleepEnd");
+  config.sleepStart = sleepStartStr.length() > 0 ? sleepStartStr.toInt() : 23;
+  config.sleepEnd = sleepEndStr.length() > 0 ? sleepEndStr.toInt() : 7;
+  if (config.sleepStart < 0 || config.sleepStart > 23) config.sleepStart = 23;
+  if (config.sleepEnd < 0 || config.sleepEnd > 23) config.sleepEnd = 7;
   
   ssid.toCharArray(config.ssid, sizeof(config.ssid));
   password.toCharArray(config.password, sizeof(config.password));

@@ -47,6 +47,7 @@
 // Forward declarations
 extern int hourLastCheck;
 extern bool configDone;
+extern Config config;
 
 // Variables preserved across deep sleep (restored from RTC on boot)
 int savedHourLastCheck = -1;
@@ -136,6 +137,27 @@ bool shouldWakeForData() {
   // We wake up every SLEEP_INTERVAL_MIN minutes to check
   // Return true to check time, false to go back to sleep
   return true; // We'll check time after waking
+}
+
+// Check if current hour is within the sleep schedule
+// Returns true if we should go into deep sleep immediately
+// Sleep schedule: from config.sleepStart to config.sleepEnd (e.g. 23:00 - 07:00)
+bool isSleepTime(int currentHour) {
+  int sleepStart = config.sleepStart;
+  int sleepEnd = config.sleepEnd;
+  
+  // Validate (should never happen, but protect against bad config)
+  if (sleepStart < 0 || sleepStart > 23) sleepStart = 23;
+  if (sleepEnd < 0 || sleepEnd > 23) sleepEnd = 7;
+  
+  // Handle overnight schedule (e.g. 23:00 - 07:00)
+  if (sleepStart < sleepEnd) {
+    // Same-day schedule (e.g. 01:00 - 06:00)
+    return (currentHour >= sleepStart && currentHour < sleepEnd);
+  } else {
+    // Overnight schedule (e.g. 23:00 - 07:00)
+    return (currentHour >= sleepStart || currentHour < sleepEnd);
+  }
 }
 
 // Call this after boot to determine if we need a full WiFi fetch

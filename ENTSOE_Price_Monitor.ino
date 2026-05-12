@@ -142,12 +142,21 @@ void setup() {
         matrixShowEntsoe();
       }
       
-      // Show display for a few seconds before sleeping
-      Serial.println("Showing prices for 5 seconds...");
-      delay(5000);
-      
-      // Enter deep sleep
-      enterDeepSleep();
+      // Check if it's sleep time based on schedule
+      int currentHourCheck = getHoursOfDay();
+      if (isSleepTime(currentHourCheck)) {
+        Serial.printf("Sleep time (%02d:00 is between %02d:00-%02d:00) - entering deep sleep\n", 
+          currentHourCheck, config.sleepStart, config.sleepEnd);
+        Serial.println("Showing prices for 5 seconds...");
+        delay(5000);
+        enterDeepSleep();
+      } else {
+        Serial.println("Awake hours - entering web mode for 5 minutes");
+        saveRtcData();
+        webModeActive = true;
+        webModeStart = millis();
+        // Don't sleep, stay in loop for web interface
+      }
     }
   }
 
@@ -189,6 +198,16 @@ void setup() {
     
     // Mark hour as checked
     hourLastCheck = getHoursOfDay();
+    
+    // Check if it's sleep time
+    int currentHourCheck = getHoursOfDay();
+    if (isSleepTime(currentHourCheck)) {
+      Serial.printf("Sleep time (%02d:00 is between %02d:00-%02d:00) - entering deep sleep\n", 
+        currentHourCheck, config.sleepStart, config.sleepEnd);
+      delay(2000);
+      saveRtcData();
+      enterDeepSleep();
+    }
     
     Serial.println("Setup complete! Web interface active for 5 minutes...");
     Serial.println("Open your browser to http://pricemonitor.lan/dashboard");

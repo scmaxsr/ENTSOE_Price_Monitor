@@ -36,6 +36,8 @@ struct Config {
   char apiKey[48];
   char biddingZone[24];
   char timezone[40];
+  int sleepStart;   // Deep sleep start hour (e.g. 23 = 23:00)
+  int sleepEnd;     // Deep sleep end hour (e.g. 7 = 07:00)
   bool configured;
 };
 
@@ -79,11 +81,13 @@ bool loadConfig() {
   file.close();
   SPIFFS.end();
 
-  // Parse the config (format: ssid|password|apiKey|biddingZone|timezone)
+  // Parse the config (format: ssid|password|apiKey|biddingZone|timezone|sleepStart|sleepEnd)
   int p1 = content.indexOf('|');
   int p2 = content.indexOf('|', p1 + 1);
   int p3 = content.indexOf('|', p2 + 1);
   int p4 = content.indexOf('|', p3 + 1);
+  int p5 = content.indexOf('|', p4 + 1);
+  int p6 = content.indexOf('|', p5 + 1);
 
   if (p1 == -1 || p2 == -1 || p3 == -1) {
     Serial.println("Invalid config format");
@@ -95,12 +99,29 @@ bool loadConfig() {
   content.substring(p2 + 1, p3).toCharArray(config.apiKey, sizeof(config.apiKey));
   
   if (p4 == -1) {
-    // Legacy format (4 fields) - assume NL timezone
+    // Legacy format (4 fields) - assume NL, default hours
     content.substring(p3 + 1).toCharArray(config.biddingZone, sizeof(config.biddingZone));
     strcpy(config.timezone, "CET-1CEST,M3.5.0,M10.5.0/3");
-  } else {
+    config.sleepStart = 23;  // Default: sleep from 23:00
+    config.sleepEnd = 7;     // Default: wake at 07:00
+  } else if (p5 == -1) {
+    // Format with 5 fields (no sleep schedule)
     content.substring(p3 + 1, p4).toCharArray(config.biddingZone, sizeof(config.biddingZone));
     content.substring(p4 + 1).toCharArray(config.timezone, sizeof(config.timezone));
+    config.sleepStart = 23;
+    config.sleepEnd = 7;
+  } else if (p6 == -1) {
+    // Format with 6 fields (sleepStart but no sleepEnd)
+    content.substring(p3 + 1, p4).toCharArray(config.biddingZone, sizeof(config.biddingZone));
+    content.substring(p4 + 1, p5).toCharArray(config.timezone, sizeof(config.timezone));
+    config.sleepStart = content.substring(p5 + 1).toInt();
+    config.sleepEnd = 7;
+  } else {
+    // Full format (7 fields)
+    content.substring(p3 + 1, p4).toCharArray(config.biddingZone, sizeof(config.biddingZone));
+    content.substring(p4 + 1, p5).toCharArray(config.timezone, sizeof(config.timezone));
+    config.sleepStart = content.substring(p5 + 1, p6).toInt();
+    config.sleepEnd = content.substring(p6 + 1).toInt();
   }
   
   // Trim any whitespace/newlines
@@ -117,6 +138,7 @@ bool loadConfig() {
   Serial.print("  SSID: "); Serial.println(config.ssid);
   Serial.print("  API Key: "); Serial.println(config.apiKey);
   Serial.print("  Zone: "); Serial.println(config.biddingZone);
+  Serial.printf("  Sleep: %02d:00 - %02d:00\n", config.sleepStart, config.sleepEnd);
   return true;
 }
 
@@ -138,7 +160,9 @@ bool saveConfig() {
                    String(config.password) + "|" + 
                    String(config.apiKey) + "|" + 
                    String(config.biddingZone) + "|" +
-                   String(config.timezone);
+                   String(config.timezone) + "|" +
+                   String(config.sleepStart) + "|" +
+                   String(config.sleepEnd);
 
   file.print(content);
   file.close();
@@ -328,6 +352,34 @@ const char configHTML[] PROGMEM = R"rawliteral(
           </div>
           
           <input type="hidden" id="tzAutoSet" value="true">
+          
+          <h3 style="color:#00d4aa; font-size:0.9em; margin-top:18px; margin-bottom:4px; border-top:1px solid #00d4aa22; padding-top:14px;">💤 Deep Sleep Schedule</h3>
+          <p style="font-size:0.75em; color:#888; margin-bottom:10px;">The device will go into deep sleep between these hours to save power. It will wake every 15 minutes to check for price updates.</p>
+          
+          <div style="display:flex; gap:12px;">
+            <div style="flex:1;">
+              <label style="margin-top:0;">Sleep start (hour)</label>
+              <select id="sleepStart" style="width:100%;">
+                <option value="21">21:00 (9 PM)</option>
+                <option value="22">22:00 (10 PM)</option>
+                <option value="23" selected>23:00 (11 PM)</option>
+                <option value="0">00:00 (Midnight)</option>
+                <option value="1">01:00</option>
+                <option value="2">02:00</option>
+              </select>
+            </div>
+            <div style="flex:1;">
+              <label style="margin-top:0;">Sleep end (hour)</label>
+              <select id="sleepEnd" style="width:100%;">
+                <option value="5">05:00</option>
+                <option value="6">06:00</option>
+                <option value="7" selected>07:00</option>
+                <option value="8">08:00</option>
+                <option value="9">09:00</option>
+              </select>
+            </div>
+          </div>
+          <div class="info">Between sleep start and sleep end, the device wakes briefly for price updates but stays in low power mode.</div>
           
           <button type="submit" class="btn" id="saveBtn">Save &amp; Connect</button>
         </form>
@@ -567,6 +619,8 @@ const char configHTML[] PROGMEM = R"rawliteral(
       data.append('apiKey', document.getElementById('apiKey').value);
       data.append('biddingZone', finalZone);
       data.append('timezone', finalTz);
+      data.append('sleepStart', document.getElementById('sleepStart').value);
+      data.append('sleepEnd', document.getElementById('sleepEnd').value);
       
       try {
         const res = await fetch('/save', { method: 'POST', body: data });
@@ -659,6 +713,16 @@ void handleSave() {
   if (timezone.length() == 0) {
     timezone = "CET-1CEST,M3.5.0,M10.5.0/3"; // Default NL timezone
   }
+
+  // Parse sleep schedule (default: 23:00 - 07:00)
+  String sleepStartStr = server.arg("sleepStart");
+  String sleepEndStr = server.arg("sleepEnd");
+  config.sleepStart = sleepStartStr.length() > 0 ? sleepStartStr.toInt() : 23;
+  config.sleepEnd = sleepEndStr.length() > 0 ? sleepEndStr.toInt() : 7;
+  
+  // Validate
+  if (config.sleepStart < 0 || config.sleepStart > 23) config.sleepStart = 23;
+  if (config.sleepEnd < 0 || config.sleepEnd > 23) config.sleepEnd = 7;
 
   ssid.toCharArray(config.ssid, sizeof(config.ssid));
   password.toCharArray(config.password, sizeof(config.password));
