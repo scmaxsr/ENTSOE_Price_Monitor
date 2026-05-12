@@ -711,6 +711,10 @@ void startConfigPortal() {
   // Start WiFi scan for available networks
   startWiFiScan();
 
+  // Initialize OTA update
+  #include "helper_ota.h"
+  initOTA();
+  
   server.begin();
   Serial.println("Web server started at http://" + apIP.toString());
 
