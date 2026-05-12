@@ -19,7 +19,7 @@
 #include <FS.h>
 #include "helper_led.h"
 
-// Config file path (defined in settings.h, included via main .ino)
+// Config file path (defined in settings.h)
 extern const char* configFile;
 
 // DNS server for captive portal

@@ -243,4 +243,22 @@ void matrixShowError() {
   delay(500);
 }
 
+// Turn off LED matrix completely (for deep sleep)
+// Sets all LEDs to off and powers down the matrix driver
+void matrixPowerOff() {
+  matrix.fillScreen(0);
+  matrix.show();
+  matrix.setBrightness(0);
+  Serial.println("LED Matrix: powered off for deep sleep");
+}
+
+// Re-initialize LED matrix after waking from deep sleep
+void matrixWakeUp() {
+  matrix.begin();
+  matrix.setBrightness(ledBrightness);
+  matrix.fillScreen(0);
+  matrix.show();
+  Serial.println("LED Matrix: re-initialized after wake");
+}
+
 #endif // HELPER_LED_H
