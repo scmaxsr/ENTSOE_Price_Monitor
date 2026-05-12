@@ -29,6 +29,7 @@
 #include "helper_entsoe.h"
 #include "helper_led.h"
 #include "helper_deep_sleep.h"
+#include "helper_web.h"
 
 // Global prices structure (defined here, used via extern in helpers)
 entsoe_prices PRICES;
@@ -45,6 +46,11 @@ unsigned long intervalCheck = 1; // Run loop every second
 
 // Wake up reason
 bool wokeFromSleep = false;
+
+// Web mode: keep ESP awake for web interface
+bool webModeActive = false;
+unsigned long webModeStart = 0;
+const unsigned long WEB_MODE_DURATION = 300000; // 5 minutes
 
 void setup() {
   Serial.begin(115200);
@@ -158,6 +164,9 @@ void setup() {
     // Initialize WiFi (with config portal on first boot)
     initWiFi();
     
+    // Initialize web interface (dashboard, settings, API)
+    initWebInterface();
+    
     // After config portal: configDone is set
     configDone = true;
     
@@ -181,28 +190,46 @@ void setup() {
     // Mark hour as checked
     hourLastCheck = getHoursOfDay();
     
-    Serial.println("Setup complete! Showing prices for 5 seconds...");
-    delay(5000);
+    Serial.println("Setup complete! Web interface active for 5 minutes...");
+    Serial.println("Open your browser to http://pricemonitor.lan/dashboard");
     
-    // Save state and enter deep sleep
-    enterDeepSleep();
+    // Save RTC data before web mode
+    saveRtcData();
+    
+    // Enter web mode (keep awake for web interface)
+    webModeActive = true;
+    webModeStart = millis();
   }
 }
 
 void loop() {
-  // Main loop - only reached for config portal mode (before deep sleep starts)
-  // After enterDeepSleep(), the ESP shuts down and won't reach here
+  // Main loop - handles web interface and auto deep sleep
   
   unsigned long timeNow = millis();
   
-  if (timeLastCheck == 0 || (unsigned long)(timeNow - timeLastCheck) > 1000) {
-    timeLastCheck = timeNow;
+  if (webModeActive) {
+    // Check if web mode time expired
+    if (millis() - webModeStart > WEB_MODE_DURATION) {
+      Serial.println("Web mode timeout - entering deep sleep");
+      webModeActive = false;
+      delay(100);
+      saveRtcData();
+      enterDeepSleep();
+    }
     
-    // Update LED matrix (non-blocking AP mode animation)
-    matrixUpdateAPMode();
-    
-    // Process portal requests if WiFi is in AP mode
-    dnsServer.processNextRequest();
-    server.handleClient();
+    // Process server requests (every loop iteration)
+    if (timeLastCheck == 0 || (unsigned long)(timeNow - timeLastCheck) > 100) {
+      timeLastCheck = timeNow;
+      
+      // LED matrix animation in AP mode
+      matrixUpdateAPMode();
+      
+      // Process web server
+      dnsServer.processNextRequest();
+      server.handleClient();
+    }
+  } else {
+    // Not in web mode - should never reach here, but fallback to deep sleep
+    enterDeepSleep();
   }
 }
