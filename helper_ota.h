@@ -25,7 +25,7 @@
 // Forward declaration: we need the web server from helper_wifi_portal
 extern ESP8266WebServer server;
 
-ESP8266HTTPUpdateServer httpUpdater;
+ESP8266HTTPUpdateServerTemplate<WiFiServer> httpUpdater;
 
 // Initialize OTA update server
 // Mounts at /update path
@@ -33,7 +33,7 @@ void initOTA() {
   httpUpdater.setup(&server, "/update", config.password, config.password);
   Serial.println("OTA update available at /update");
   Serial.printf("  Username: %s\n", config.password);
-  Serial.println("  Upload .ino.bin file (Sketch → Export Compiled Binary)");
+  Serial.println("  Upload .ino.bin file (Sketch -> Export Compiled Binary)");
 }
 
 #endif // HELPER_OTA_H

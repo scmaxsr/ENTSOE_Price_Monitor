@@ -24,6 +24,10 @@
 #include <ESP8266WiFi.h>
 #include "settings.h"
 #include "helper_wifi_portal.h"
+// ESP8266HTTPUpdateServer uses namespace - include before other headers
+#include <ESP8266HTTPUpdateServer.h>
+using namespace esp8266httpupdateserver;
+#include "helper_ota.h"
 #include "helper_time.h"
 #include "helper_memory.h"
 #include "helper_entsoe.h"
@@ -113,7 +117,7 @@ void setup() {
         
         if (WiFi.status() == WL_CONNECTED) {
           Serial.println("WiFi connected ✓");
-          showMemoryUsage();
+          display_freeram();
           
           // Update time from NTP
           updateTime(config.timezone);

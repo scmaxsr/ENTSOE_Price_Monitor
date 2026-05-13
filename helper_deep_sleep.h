@@ -117,7 +117,7 @@ void enterDeepSleep() {
   delay(100);
   
   // Detach GPIO pins to reduce power leakage
-  pinMode(LED_POWER_PIN, INPUT_PULLDOWN16); // Pull low during sleep
+  pinMode(LED_POWER_PIN, INPUT_PULLDOWN_16); // Pull low during sleep
   
   // Enter deep sleep
   // ESP8266 will wake up after SLEEP_TIME_US microseconds
