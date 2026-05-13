@@ -54,7 +54,6 @@ bool wokeFromSleep = false;
 // Web mode: keep ESP awake for web interface
 bool webModeActive = false;
 unsigned long webModeStart = 0;
-const unsigned long WEB_MODE_DURATION = 300000; // 5 minutes
 
 void setup() {
   Serial.begin(115200);
@@ -203,17 +202,7 @@ void setup() {
     // Mark hour as checked
     hourLastCheck = getHoursOfDay();
     
-    // Check if it's sleep time
-    int currentHourCheck = getHoursOfDay();
-    if (isSleepTime(currentHourCheck)) {
-      Serial.printf("Sleep time (%02d:00 is between %02d:00-%02d:00) - entering deep sleep\n", 
-        currentHourCheck, config.sleepStart, config.sleepEnd);
-      delay(2000);
-      saveRtcData();
-      enterDeepSleep();
-    }
-    
-    Serial.println("Setup complete! Web interface active for 5 minutes...");
+    Serial.println("Setup complete! Web interface active...");
     Serial.println("Open your browser to http://pricemonitor.lan/dashboard");
     
     // Save RTC data before web mode
@@ -231,16 +220,7 @@ void loop() {
   unsigned long timeNow = millis();
   
   if (webModeActive) {
-    // Check if web mode time expired
-    if (millis() - webModeStart > WEB_MODE_DURATION) {
-      Serial.println("Web mode timeout - entering deep sleep");
-      webModeActive = false;
-      delay(100);
-      saveRtcData();
-      enterDeepSleep();
-    }
-    
-    // Process server requests (every loop iteration)
+    // Process server requests (every 100ms)
     if (timeLastCheck == 0 || (unsigned long)(timeNow - timeLastCheck) > 100) {
       timeLastCheck = timeNow;
       
